@@ -46,6 +46,7 @@ class Test(TestCase):
         overdraft_prediction.predict(config)
         overdraft_prediction.create_post_predication_features_sets(config)
         overdraft_prediction.post_predict_process(config)
+        overdraft_prediction.load_post_prediction_to_snowflake(config)
 
         bank_account_id_count = self.get_bank_account_id_count()
 
@@ -79,21 +80,21 @@ class Test(TestCase):
         predictions = predictions.merge(post_predictions_features, on=['bank_account_id'])
         predictions.loc[predictions['prediction'] > 20 & predictions['is_new']] = 20
         predictions.loc[predictions['prediction'] > 50] = 50
+        predictions.loc[predictions['bank_account_id'] == 260101000149, 'prediction'] = 50
 
         pre_and_post_prediction = post_predictions.merge(predictions, on=['bank_account_id'])
         pre_and_post_prediction = pre_and_post_prediction[
             pre_and_post_prediction.apply(lambda x: x.prediction_x != x.prediction_y, axis=1)]
         self.assertTrue(pre_and_post_prediction.empty)
-
+        self.assertTrue(post_predictions[post_predictions['bank_account_id'] == 260101000149].reset_index().at[
+                            0, 'reason'].endswith(' update manually Lilac'))
 
     def test_probability_vector(self):
         overdraft_prediction.create_features_sets(config)
 
-
     @mock.patch('airflow.providers.slack.operators.slack_webhook.SlackWebhookOperator.execute')
     def test_statistics_tests(self, mock_slack_webhook_operator):
         overdraft_prediction.statistics_tests(config)
-
 
     @mock.patch('airflow.providers.slack.operators.slack_webhook.SlackWebhookOperator.execute')
     def test_slack_revoke_reasons(self, mock_slack_webhook_operator):
