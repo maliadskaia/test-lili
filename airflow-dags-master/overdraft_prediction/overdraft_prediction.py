@@ -44,7 +44,6 @@ def create_features_set_dataframe(config, conn):
     financial_data = extractor.extract_with_conn(config, conn, "financial_data.sql")
     recurrent_dd_ids = extractor.extract_with_conn(config, conn, "recurrent_direct_deposit.sql")
 
-
     if (mcc_table['MONEY_AMOUNT'].min() < -1000000):
         raise Exception('Error! Currently we perform optimization of the values of MONEY_AMOUNT'
                         'in MCC_TABLE in order to reduce memory usage. It seems that there are'
@@ -140,11 +139,11 @@ def create_post_predication_features_sets(config):
 
 def post_predict_process(config):
     predictions = s3.load_csv(config.s3_connection, config.stages_bucket,
-                     config.get_prediction_key(), header=None,
-                     names=["bank_account_id", "prediction", "expiration_date", "reason"])
+                              config.get_prediction_key(), header=None,
+                              names=["bank_account_id", "prediction", "expiration_date", "reason"])
     post_prediction_features = s3.load_csv(config.s3_connection, config.stages_bucket,
-                              config.get_post_prediction_features_key(), header=None,
-                              names=["bank_account_id", "IS_NEW"])
+                                           config.get_post_prediction_features_key(), header=None,
+                                           names=["bank_account_id", "IS_NEW"])
     predictions = predictions.merge(post_prediction_features, on=['bank_account_id'])
 
     predictions.loc[(predictions['IS_NEW'] == 1) &
@@ -153,21 +152,29 @@ def post_predict_process(config):
                     (predictions['prediction'] > 20), 'prediction'] = 20
     predictions.loc[predictions['prediction'] == 100, 'prediction'] = 50
     predictions.loc[predictions['prediction'] == 60, 'prediction'] = 50
+    predictions.loc[predictions['bank_account_id'] == 260101000149, 'prediction'] = 50
+    predictions.loc[(predictions['bank_account_id'] == 260101000149), 'reason'] = predictions[
+                                                                                      'reason'] + ' update manually Lilac'
     predictions.drop(columns=['IS_NEW'], inplace=True)
 
     s3.store_dataframe_to_s3(predictions, config.s3_connection, config.stages_bucket,
                              config.get_post_prediction_key(), False)
 
 
-
 def load_csv_to_snowflake(config, key, out_table):
     engine = snowflake.create_engine(config.snowflake_output_connection)
-    df = s3.load_csv(config.s3_connection, config.stages_bucket, key, header=None,
-                     names=["bank_account_id", "prediction", "expiration_date", "reason"])
-    df["execution_date"] = config.get_execution_date_datetime()
-    df["dag_run"] = config.get_dag_run_start_date_datetime()
-    df["created_at"] = datetime.datetime.now()
-    df.to_sql(out_table, con=engine, index=False, if_exists='replace', chunksize=10000)
+
+    with engine.connect() as conn:
+        try:
+            df = s3.load_csv(config.s3_connection, config.stages_bucket, key, header=None,
+                             names=["bank_account_id", "prediction", "expiration_date", "reason"])
+            df["execution_date"] = config.get_execution_date_datetime()
+            df["dag_run"] = config.get_dag_run_start_date_datetime()
+            df["created_at"] = datetime.datetime.now()
+            df.to_sql(out_table, con=conn, index=False, if_exists='replace', chunksize=10000)
+        finally:
+            conn.close()
+            engine.dispose()
 
 
 def load_prediction_to_snowflake(config):
