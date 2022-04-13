@@ -1,5 +1,5 @@
 # snowflake-connector-python==2.4.1
-snowflake-connector-python
-snowflake-sqlalchemy==1.2.4
-# boto3
-# botocore
+# snowflake-connector-python
+# snowflake-sqlalchemy==1.2.4
+boto3
+botocore
