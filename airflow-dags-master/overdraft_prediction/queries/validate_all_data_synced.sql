@@ -1,4 +1,0 @@
-SELECT TRUE
-FROM LILI_ANALYTICS.ODS.Rivery_flags
-WHERE FLAG = True
-  AND DATE(UPDATE_TIME_UTC) = DATE(%(dag_run_start_date)s);

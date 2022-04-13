@@ -1,5 +1,0 @@
-SELECT bank_account_id,COUNT(CASE WHEN status=40 THEN id ELSE NULL END ) AS pending_check
-FROM  "LILI_ANALYTICS"."ODS"."MYSQL_ACCOUNT_PENDING_CHECK"
-WHERE  BANK_ACCOUNT_ID IS NOT NULL
-AND CREATE_TIME >= DATEADD(MONTH, -1,  DATE(%(dag_run_start_date)s) ) AND CREATE_TIME <= %(dag_run_start_date)s
-GROUP BY 1
