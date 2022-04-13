@@ -22,14 +22,25 @@ import os, boto3
 #     print(j)
 
 
-s3_resource = boto3.resource('s3',
-  aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"),
-  aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY"),
-  region_name=os.environ["AWS_REGION"]
-  )
+# s3_resource = boto3.resource('s3',
+#   aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"),
+#   aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY"),
+#   region_name=os.environ["AWS_REGION"]
+#   )
 
-s3_bucket = s3_resource.Bucket("bucket-models-sagemaker")
-files = s3_bucket.objects.all()
-for file in files:
-  print(file)
+# s3_bucket = s3_resource.Bucket("terraform-nastya-test-bucket")
+# files = s3_bucket.objects.all()
+# for file in files:
+#   print(file)
  
+session = boto3.Session( 
+    aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
+    aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
+    region_name=os.environ["AWS_REGION"]
+)
+
+s3 = session.resource('s3')
+my_bucket = s3.Bucket('terraform-nastya-test-bucket')
+
+for my_bucket_object in my_bucket.objects.all():
+    print(my_bucket_object.key)
